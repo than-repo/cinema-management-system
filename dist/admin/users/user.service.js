@@ -50,7 +50,6 @@ const token_service_1 = require("../../sys/token/token.service");
 const bcrypt = __importStar(require("bcrypt"));
 const crypto = __importStar(require("crypto"));
 const common_2 = require("@nestjs/common");
-const client_1 = require("@prisma/client");
 let UsersService = UsersService_1 = class UsersService {
     prisma;
     tokenService;
@@ -203,44 +202,34 @@ let UsersService = UsersService_1 = class UsersService {
         };
     }
     async searchUsers(keyword, page = 1, pageSize = 10) {
-        this.logger.log(`Tìm kiếm người dùng với keyword: ${keyword || 'Không có'}, page: ${page}, pageSize: ${pageSize}`);
         const skip = (page - 1) * pageSize;
-        const lowerKeyword = keyword ? `%${keyword.toLowerCase()}%` : ''; // Thêm % cho LIKE
-        // Xây dựng query raw cho findMany với parameterized để tránh SQL injection
-        const users = (await this.prisma.$queryRaw `
-    SELECT 
-      tai_khoan, 
-      ho_ten, 
-      email, 
-      so_dt, 
-      loai_nguoi_dung, 
-      createdAt
-    FROM NguoiDung
-    WHERE deletedAt IS NULL
-    ${keyword
-            ? client_1.Prisma.sql `AND (
-      LOWER(ho_ten) LIKE ${lowerKeyword} OR 
-      LOWER(email) LIKE ${lowerKeyword} OR 
-      LOWER(so_dt) LIKE ${lowerKeyword}
-    )`
-            : client_1.Prisma.sql}
-    ORDER BY tai_khoan DESC
-    LIMIT ${pageSize} OFFSET ${skip}
-  `);
-        // Query raw cho count với parameterized
-        const totalResult = (await this.prisma.$queryRaw `
-    SELECT COUNT(*) as total
-    FROM NguoiDung
-    WHERE deletedAt IS NULL
-    ${keyword
-            ? client_1.Prisma.sql `AND (
-      LOWER(ho_ten) LIKE ${lowerKeyword} OR 
-      LOWER(email) LIKE ${lowerKeyword} OR 
-      LOWER(so_dt) LIKE ${lowerKeyword}
-    )`
-            : client_1.Prisma.sql}
-  `);
-        const total = Number(totalResult[0]?.total ?? 0);
+        const where = {
+            deletedAt: null,
+            ...(keyword && {
+                OR: [
+                    { ho_ten: { contains: keyword } },
+                    { email: { contains: keyword } },
+                    { so_dt: { contains: keyword } },
+                ],
+            }),
+        };
+        const [users, total] = await Promise.all([
+            this.prisma.nguoiDung.findMany({
+                where,
+                select: {
+                    tai_khoan: true,
+                    ho_ten: true,
+                    email: true,
+                    so_dt: true,
+                    loai_nguoi_dung: true,
+                    createdAt: true,
+                },
+                orderBy: { tai_khoan: 'desc' },
+                skip,
+                take: pageSize,
+            }),
+            this.prisma.nguoiDung.count({ where }),
+        ]);
         return {
             data: users,
             pagination: {
@@ -254,49 +243,23 @@ let UsersService = UsersService_1 = class UsersService {
         };
     }
     async searchUsersNoPag(keyword) {
-        this.logger.log(`Tìm kiếm người dùng không phân trang với keyword: ${keyword || 'Không có'}`);
-        const lowerKeyword = keyword ? `%${keyword.toLowerCase()}%` : ''; // Thêm % cho LIKE
-        const maxLimit = 100; // Giới hạn mặc định để tránh tải dữ liệu lớn
-        // Query raw cho findMany với parameterized để tránh SQL injection
-        const usersQuery = client_1.Prisma.sql `
-      SELECT 
-        tai_khoan, 
-        ho_ten, 
-        email, 
-        so_dt, 
-        loai_nguoi_dung, 
-        createdAt
-      FROM NguoiDung
-      WHERE deletedAt IS NULL
-      ${keyword
-            ? client_1.Prisma.sql `AND (
-        LOWER(ho_ten) LIKE ${lowerKeyword} OR 
-        LOWER(email) LIKE ${lowerKeyword} OR 
-        LOWER(so_dt) LIKE ${lowerKeyword}
-      )`
-            : client_1.Prisma.sql}
-      ORDER BY tai_khoan DESC
-      LIMIT ${maxLimit}
-    `;
-        const users = (await this.prisma.$queryRaw(usersQuery));
-        // Query raw cho count để kiểm tra nếu vượt giới hạn
-        const countQuery = client_1.Prisma.sql `
-      SELECT COUNT(*) as total
-      FROM NguoiDung
-      WHERE deletedAt IS NULL
-      ${keyword
-            ? client_1.Prisma.sql `AND (
-        LOWER(ho_ten) LIKE ${lowerKeyword} OR 
-        LOWER(email) LIKE ${lowerKeyword} OR 
-        LOWER(so_dt) LIKE ${lowerKeyword}
-      )`
-            : client_1.Prisma.sql}
-    `;
-        const totalResult = (await this.prisma.$queryRaw(countQuery));
-        const total = Number(totalResult[0]?.total ?? 0);
-        // Xử lý nếu dữ liệu quá lớn
-        if (total > maxLimit) {
-            throw new common_1.BadRequestException(`Kết quả tìm kiếm vượt quá ${maxLimit} bản ghi. Vui lòng sử dụng endpoint TimKiemNguoiDungPhanTrang để xử lý dữ liệu lớn.`);
+        const maxLimit = 100;
+        const users = await this.prisma.nguoiDung.findMany({
+            where: {
+                deletedAt: null,
+                ...(keyword && {
+                    OR: [
+                        { ho_ten: { contains: keyword } },
+                        { email: { contains: keyword } },
+                        { so_dt: { contains: keyword } },
+                    ],
+                }),
+            },
+            orderBy: { tai_khoan: 'desc' },
+            take: maxLimit + 1,
+        });
+        if (users.length > maxLimit) {
+            throw new common_1.BadRequestException('Kết quả quá lớn, vui lòng dùng phân trang');
         }
         return { data: users };
     }

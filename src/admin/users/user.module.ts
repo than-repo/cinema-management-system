@@ -1,3 +1,4 @@
+//src\admin\users\user.module.ts
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { UsersService } from './user.service';
 import { PrismaModule } from '../../sys/prisma/prisma.module';
