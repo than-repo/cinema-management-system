@@ -17,6 +17,7 @@ import { CloudinaryUploadInterceptor } from './../../shared/interceptors/cloudin
 import { MoviesService } from './movie.service';
 import { DeleteMovieDto } from './dto/delete-movie.dto';
 import { ApiTags } from '@nestjs/swagger';
+
 @ApiTags('QuanLyPhim')
 @Controller('QuanLyPhim')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -28,7 +29,7 @@ export class MoviesController {
   @UseInterceptors(CloudinaryUploadInterceptor) // Sử dụng CloudinaryUploadInterceptor
   async addMovie(
     @Body('data') data: string, // Key text là 'data' chứa JSON string
-    @UploadedFile() hinh_anh?: Express.Multer.File,
+    @UploadedFile() hinh_anh?: any,
   ) {
     if (!data) {
       throw new BadRequestException('Data field is required');
@@ -44,7 +45,7 @@ export class MoviesController {
   @UseInterceptors(CloudinaryUploadInterceptor)
   async updateMovie(
     @Body('data') data: string,
-    @UploadedFile() hinh_anh?: Express.Multer.File,
+    @UploadedFile() hinh_anh?: any,
   ) {
     if (!data) {
       throw new BadRequestException('Data field is required');

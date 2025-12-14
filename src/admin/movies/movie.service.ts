@@ -16,7 +16,7 @@ export class MoviesService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  async createMovie(dataString: string, file?: Express.Multer.File) {
+  async createMovie(dataString: string, file?: any) {
     let parsedData: CreateMovieDto;
     try {
       parsedData = JSON.parse(dataString);
@@ -55,7 +55,7 @@ export class MoviesService {
 
   // ... Các import và constructor hiện tại ...
 
-  async updateMovie(dataString: string, file?: Express.Multer.File) {
+  async updateMovie(dataString: string, file?: any) {
     let parsedData: UpdateMovieDto;
     try {
       parsedData = JSON.parse(dataString);
