@@ -17,7 +17,7 @@ export class CloudinaryController {
   @Post('upload-test')
   @UseInterceptors(CloudinaryUploadInterceptor)
   async uploadTest(
-    @UploadedFile() image: Express.Multer.File,
+    @UploadedFile() image: any,
     @Body('description') description?: string,
   ) {
     if (!image) {
