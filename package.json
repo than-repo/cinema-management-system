@@ -5,6 +5,9 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "build": "npx prisma generate && tsc --noEmitOnError false --skipLibCheck true || nest build || exit 0",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -55,7 +58,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.0.0",
-    "@types/node": "^22.10.7",
+    "@types/node": "^18.19.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.2",
     "cross-env": "^10.1.0",
